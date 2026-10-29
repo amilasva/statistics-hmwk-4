@@ -1,0 +1,391 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive stochastic penetration process simulation using Bernoulli and Rademacher models.">
+  <title>Stochastic Penetration Process</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-top">
+        <span class="eyebrow">PROBABILITY THEORY · INTERACTIVE SIMULATION</span>
+        <span class="hero-symbol">∑ Xᵢ</span>
+      </div>
+      <div class="hero-content">
+        <div>
+          <h1>Stochastic<br><em>Penetration Process</em></h1>
+          <p class="hero-description">
+            Simulating independent penetration scores across n systems
+            and m attackers. An experimental study of the Law of
+            Large Numbers, variance scaling, and the Central Limit Theorem.
+          </p>
+          <div class="hero-tags">
+            <span>Bernoulli</span>
+            <span>Rademacher</span>
+            <span>LLN</span>
+            <span>CLT</span>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="orbit orbit-three"></div>
+          <div class="center-orb">Xᵢ</div>
+          <span class="art-label art-label-one">P(Xᵢ = 1) = p</span>
+          <span class="art-label art-label-two">Sₙ = ∑ Xᵢ</span>
+          <span class="art-label art-label-three">N(0,1)</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro-strip">
+        <div class="intro-number">01 /</div>
+        <div>
+          <h2>The Experiment</h2>
+          <p>
+            Each attacker generates a sequence of n independent and
+            identically distributed penetration-score increments.
+            The simulation repeats this process for m attackers,
+            producing m sample trajectories. The score is an abstract
+            mathematical measure rather than a calibrated real-world
+            probability of compromising a system.
+          </p>
+        </div>
+      </section>
+
+      <section class="panel control-panel" id="simulation">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">EXPERIMENT SETUP</span>
+            <h2>Simulation Parameters</h2>
+            <p>Choose a probability model and adjust the experiment.</p>
+          </div>
+          <span class="section-index">01</span>
+        </div>
+
+        <div class="model-switch">
+          <button class="model-btn active" data-model="bernoulli" type="button">
+            <strong>Bernoulli Model</strong>
+            <small>Xᵢ ∈ {0, 1}</small>
+          </button>
+          <button class="model-btn" data-model="rademacher" type="button">
+            <strong>Rademacher Model</strong>
+            <small>Xᵢ ∈ {−1, +1}</small>
+          </button>
+        </div>
+
+        <div class="controls-grid">
+          <div class="control-field">
+            <label for="nInput">Systems / Steps <span>n</span></label>
+            <input type="number" id="nInput" value="100" min="2" max="2000">
+            <small>2–2000 observations per attacker</small>
+          </div>
+          <div class="control-field">
+            <label for="mInput">Attackers <span>m</span></label>
+            <input type="number" id="mInput" value="500" min="2" max="3000">
+            <small>2–3000 independent trajectories</small>
+          </div>
+          <div class="control-field" id="probabilityField">
+            <label for="pInput">Success Probability <span>p</span></label>
+            <input type="number" id="pInput" value="0.30" min="0.01" max="0.99" step="0.01">
+            <small>Probability of Xᵢ = 1</small>
+          </div>
+        </div>
+
+        <div class="control-footer">
+          <div class="model-explanation" id="modelExplanation">
+            A successful penetration receives score 1; an unsuccessful
+            attempt receives score 0.
+          </div>
+          <button class="primary-button" id="runButton" type="button">
+            Run Simulation <span>↗</span>
+          </button>
+        </div>
+        <p class="error-message" id="errorMessage" role="alert"></p>
+      </section>
+
+      <section class="metrics-grid">
+        <div class="metric-card">
+          <span>MEAN TOTAL SCORE</span>
+          <strong id="metricTotal">—</strong>
+          <small id="metricTotalNote">Across attackers</small>
+        </div>
+        <div class="metric-card">
+          <span>MEAN AVERAGE SCORE</span>
+          <strong id="metricAverage">—</strong>
+          <small id="metricAverageNote">Expected: p</small>
+        </div>
+        <div class="metric-card">
+          <span>MEAN NORMALIZED SCORE</span>
+          <strong id="metricNormalized">—</strong>
+          <small>Across attackers</small>
+        </div>
+        <div class="metric-card">
+          <span>VARIANCE OF Sₙ / √n</span>
+          <strong id="metricVariance">—</strong>
+          <small id="metricVarianceNote">Theoretical variance</small>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">SAMPLE PATHS</span>
+            <h2>Penetration Trajectories</h2>
+            <p>
+              Cumulative score Sₖ as the number of observations k
+              increases. Up to 20 attacker trajectories are displayed.
+            </p>
+          </div>
+          <span class="section-index">02</span>
+        </div>
+        <div class="chart-container large-chart">
+          <canvas id="trajectoryChart"></canvas>
+        </div>
+        <div class="insight">
+          <strong>Interpretation</strong>
+          <p id="trajectoryInsight"></p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">EMPIRICAL DISTRIBUTIONS</span>
+            <h2>Three Views of the Score</h2>
+            <p>
+              Each histogram uses the final result of every attacker.
+              Compare the effect of dividing by n and √n.
+            </p>
+          </div>
+          <span class="section-index">03</span>
+        </div>
+        <div class="distribution-grid">
+          <div class="mini-chart-card">
+            <h3>Total Score</h3>
+            <div class="formula">Sₙ = ∑ Xᵢ</div>
+            <div class="chart-container mini-chart">
+              <canvas id="totalHistogram"></canvas>
+            </div>
+            <p>Spread increases with system size.</p>
+          </div>
+          <div class="mini-chart-card">
+            <h3>Average Score</h3>
+            <div class="formula">Sₙ / n</div>
+            <div class="chart-container mini-chart">
+              <canvas id="averageHistogram"></canvas>
+            </div>
+            <p>Concentrates near the expected value.</p>
+          </div>
+          <div class="mini-chart-card">
+            <h3>Normalized Total</h3>
+            <div class="formula">Sₙ / √n</div>
+            <div class="chart-container mini-chart">
+              <canvas id="normalizedHistogram"></canvas>
+            </div>
+            <p>Has variance independent of n.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">LAW OF LARGE NUMBERS</span>
+            <h2>Convergence of the Average</h2>
+            <p>
+              For independent, identically distributed increments,
+              the sample average converges in probability to E[Xᵢ].
+            </p>
+          </div>
+          <span class="section-index">04</span>
+        </div>
+        <div class="equation-box">
+          <span>Bernoulli: Sₙ/n → p</span>
+          <span>Rademacher: Sₙ/n → 0</span>
+        </div>
+        <div class="chart-container large-chart">
+          <canvas id="llnChart"></canvas>
+        </div>
+        <div class="insight">
+          <strong>Law of Large Numbers</strong>
+          <p id="llnInsight"></p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">CENTRAL LIMIT THEOREM</span>
+            <h2>Approaching the Normal Distribution</h2>
+            <p>
+              The Rademacher model has zero mean and unit variance.
+              Its normalized total converges in distribution to N(0,1).
+            </p>
+          </div>
+          <span class="section-index">05</span>
+        </div>
+        <div class="equation-box single-equation">
+          Sₙ / √n →ᵈ N(0,1) &nbsp; (Rademacher)
+        </div>
+        <div class="chart-container large-chart">
+          <canvas id="cltChart"></canvas>
+        </div>
+        <div class="legend-note">
+          <span><i class="legend-square"></i> Empirical density</span>
+          <span><i class="legend-line"></i> Standard normal density</span>
+        </div>
+        <div class="insight">
+          <strong>Central Limit Theorem</strong>
+          <p id="cltInsight"></p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">VARIANCE SCALING</span>
+            <h2>What Normalization Changes</h2>
+            <p>
+              The three score definitions have different variance
+              behavior as n increases.
+            </p>
+          </div>
+          <span class="section-index">06</span>
+        </div>
+        <div class="table-scroll">
+          <table class="analysis-table">
+            <thead>
+              <tr>
+                <th>Quantity</th>
+                <th>Bernoulli</th>
+                <th>Rademacher</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Var(Sₙ)</td>
+                <td>np(1 − p)</td>
+                <td>n</td>
+              </tr>
+              <tr>
+                <td>Var(Sₙ/n)</td>
+                <td>p(1 − p)/n</td>
+                <td>1/n</td>
+              </tr>
+              <tr>
+                <td>Var(Sₙ/√n)</td>
+                <td>p(1 − p)</td>
+                <td>1</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="chart-container large-chart">
+          <canvas id="varianceChart"></canvas>
+        </div>
+        <div class="insight">
+          <strong>Variance Analysis</strong>
+          <p>
+            Total-score variance grows linearly with n. Average-score
+            variance decreases as 1/n, while √n normalization keeps
+            the variance constant. The chart uses separate vertical
+            scales to make these different behaviors visible.
+          </p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">COMPARATIVE EXPERIMENT</span>
+            <h2>Increasing the Number of Systems</h2>
+            <p>
+              Repeat the simulation at several values of n while
+              keeping the model, probability, and attacker count fixed.
+            </p>
+          </div>
+          <span class="section-index">07</span>
+        </div>
+        <div class="chart-container large-chart">
+          <canvas id="comparisonChart"></canvas>
+        </div>
+        <div class="table-scroll">
+          <table class="analysis-table" id="comparisonTable">
+            <thead>
+              <tr>
+                <th>n</th>
+                <th>Mean Sₙ/n</th>
+                <th>Var(Sₙ/n)</th>
+                <th>Var(Sₙ/√n)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="insight">
+          <strong>Systems and Attackers</strong>
+          <p>
+            Increasing n extends each trajectory and reduces
+            the variance of its average. Increasing m does not
+            change the theoretical score distribution of an individual
+            attacker; it provides more independent observations,
+            improving the empirical estimate of that distribution.
+          </p>
+        </div>
+      </section>
+
+      <section class="closing-panel">
+        <span class="section-kicker">MATHEMATICAL INTERPRETATION</span>
+        <h2>What the simulations demonstrate</h2>
+        <div class="closing-grid">
+          <div>
+            <span class="closing-number">01</span>
+            <h3>Convergence in Probability</h3>
+            <p>
+              The average penetration score approaches its
+              theoretical expectation as n grows.
+            </p>
+          </div>
+          <div>
+            <span class="closing-number">02</span>
+            <h3>Variance and Scaling</h3>
+            <p>
+              Normalizing by n reduces variability, whereas
+              normalizing by √n preserves a constant variance.
+            </p>
+          </div>
+          <div>
+            <span class="closing-number">03</span>
+            <h3>Convergence in Distribution</h3>
+            <p>
+              In the symmetric Rademacher model, normalized
+              sums approach a standard normal distribution.
+            </p>
+          </div>
+        </div>
+        <p class="final-note">
+          For Bernoulli increments, the corresponding standard-normal
+          CLT uses (Sₙ − np)/√(np(1−p)), rather than Sₙ/√n.
+          All simulations assume independent, identically distributed increments.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>Stochastic Penetration Process</span>
+      <span>Probability Theory · Interactive Experiment</span>
+    </footer>
+  </div>
+</body>
+</html>
